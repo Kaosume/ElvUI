@@ -2054,7 +2054,6 @@ local priest_PWS_Ranks = {
 	[13] = {48065, 75, 1920, 30},
 	[14] = {48066, 80, 2230, 0},
 	[15] = {308143, 80, 2230, 0},
-	[16] = {305082, 80, 1250, 0},
 }
 
 -- Public Scaling:
@@ -2081,10 +2080,18 @@ local function priest_PowerWordShield_Create(srcGUID, srcName, dstGUID, dstName,
 end
 
 local function priest_PowerWordShieldT4_Create(srcGUID, srcName, dstGUID, dstName, spellid, destEffects)
-	local _, sp, quality1, sourceScaling, quality2 = UnitStatsAndScaling(srcGUID, 0.1, priest_defaultScaling, 0.1)
-	sourceScaling[spellid] = sourceScaling[spellid] or priest_defaultScaling[spellid]
-	if sourceScaling[spellid] then
-		return floor((1250 + sp * 0.2) * ZONE_MODIFIER), min(quality1, quality2)
+	local _, sp, quality = UnitStats(srcGUID, 0.1)
+	return floor((1250 + sp * 0.2) * ZONE_MODIFIER), quality
+end
+
+local function priest_DivineCharmT4_Create(srcGUID, srcName, dstGUID, dstName, spellid, destEffects)
+	local _, sp, quality = UnitStats(srcGUID, 0.1)
+	return floor((1200 + PopCharge(dstGUID, spellid) + sp * 0.25) * ZONE_MODIFIER), quality
+end
+
+local function priest_DivineCharmT4_OnHealCrit(srcGUID, srcName, dstGUID, dstName, spellid, amount)
+	if spellid == 48089 then
+		PushCharge(dstGUID, 304736, 1200, 5.0)
 	end
 end
 
@@ -2144,6 +2151,11 @@ local function priest_ApplyScaling(guid, level, baseFactor, spFactor, daFactor)
 		Core.AddCombatTrigger(guid, "OnHealCrit", priest_DivineAegis_OnHealCrit)
 	else
 		Core.RemoveCombatTrigger(guid, "OnHealCrit", priest_DivineAegis_OnHealCrit)
+	end
+	if privateScaling["2pcRaid4"] then
+		Core.AddCombatTrigger(guid, "OnHealCrit", priest_DivineCharmT4_OnHealCrit)
+	else
+		Core.RemoveCombatTrigger(guid, "OnHealCrit", priest_DivineCharmT4_OnHealCrit)
 	end
 
 	local rankValue, rankSP
@@ -2238,6 +2250,8 @@ local function priest_ScanEquipment()
 
 		-- no way to have 4pcRaid9 now
 		privateScaling["4pcRaid9"] = 0
+		privateScaling["2pcRaid5"] = 0
+		privateScaling["2pcRaid4"] = 0
 		return
 	else
 		privateScaling["4pcRaid10"] = 0
@@ -2284,8 +2298,33 @@ local function priest_ScanEquipment()
 
 	if n >= 4 then
 		privateScaling["4pcRaid9"] = 1
+		privateScaling["2pcRaid5"] = 0
+		privateScaling["2pcRaid4"] = 0
+		return
 	else
 		privateScaling["4pcRaid9"] = 0
+	end
+	-- t4 priest sirus
+	n = 0
+	if IsEquippedItem(29049) or IsEquippedItem(100435) or IsEquippedItem(101335) then -- head
+		n = n + 1
+	end
+	if IsEquippedItem(29050) or IsEquippedItem(100436) or IsEquippedItem(101336) then -- body
+		n = n + 1
+	end
+	if IsEquippedItem(29053) or IsEquippedItem(100437) or IsEquippedItem(101337) then -- legs
+		n = n + 1
+	end
+	if IsEquippedItem(29054) or IsEquippedItem(100438) or IsEquippedItem(101338) then -- shoulder
+		n = n + 1
+	end
+	if IsEquippedItem(29055) or IsEquippedItem(100439) or IsEquippedItem(101339) then -- hands
+		n = n + 1
+	end
+	if n >= 2 then
+		privateScaling["2pcRaid4"] = 1
+	else
+		privateScaling["2pcRaid4"] = 0
 	end
 	-- t5 priest sirus
 	n = 0
@@ -2508,7 +2547,6 @@ local mage_FrostWard_Entry = {2.0, 30, generic_SpellScalingByTable_Create, mage_
 local mage_IceBarrier_Entry = {1.0, 60, mage_IceBarrier_Create, generic_Hit}
 local mage_ManaShield_Entry = {1.0, 60, generic_SpellScalingByTable_Create, generic_Hit, mage_Absorb_Spells, 0.8053}
 local priest_PWS_Entry = {1.0, 30, priest_PowerWordShield_Create, generic_Hit}
-local priest_PWS_EntryT4 = {1.0, 30, priest_PowerWordShieldT4_Create, generic_Hit}
 local warlock_Sacrifice_Entry = {1.0, 30, generic_ConstantByTable_Create, generic_Hit, warlock_Sacrifice_Spells}
 local warlock_ShadowWard_Entry = {2.0, 30, generic_SpellScalingByTable_Create, warlock_ShadowWard_Hit, warlock_ShadowWard_Spells, 0.8053}
 
@@ -2663,7 +2701,9 @@ Core.Effects = {
 
 	[55277] =  {1.0, 15, function() return 1084*4, 1.0 end, generic_Hit}, --shaman totem pvp
 	--t4 priest dcp
-	[305082] = priest_PWS_EntryT4, -- Power Word: Shield (rank 14) t4 increase
+	[305082] = {1.0, 30, priest_PowerWordShieldT4_Create, generic_Hit}, -- Power Word: Shield (rank 14) t4 increase
+	--t4 priest hpriest
+	[304736] = {1.0, 8, priest_DivineCharmT4_Create, generic_Hit},                      -- Божесвенный оберег t4
 	--t5 abilities
 	[308143] = priest_PWS_Entry, -- Power Word: Shield (rank 15)
 	[319521] = {1.0, 10, druid_t6_SpellAbsorb_Create, druid_t6_SpellHit}, -- t6 absorb feral

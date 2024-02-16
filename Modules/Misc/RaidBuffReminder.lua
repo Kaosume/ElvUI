@@ -384,7 +384,9 @@ function RB:UpdateButtonStatus()
 	-- if not E.db.general.reminder.pot then
 
 	-- end
-	local lastid = 1
+	local frame = self.frame
+	local lastid, lastframe = 1, frame
+
 	local allParametres = {
 		E.db.general.reminder.pot,
 		E.db.general.reminder.food,
@@ -394,41 +396,24 @@ function RB:UpdateButtonStatus()
 		E.db.general.reminder.palmp5,
 		E.db.general.reminder.oil,
 	}
-
 	for i = 1,#allParametres do
-
-		ElvUI_ReminderBuffs[i]:ClearAllPoints()
-		ElvUI_ReminderBuffs[i]:SetWidth(E.RBRWidth)
-		ElvUI_ReminderBuffs[i]:SetHeight(E.RBRWidth)
-		ElvUI_ReminderBuffs[i]:Hide()
-
+		frame[i]:ClearAllPoints()
+		frame[i]:SetWidth(E.RBRWidth)
+		frame[i]:SetHeight(E.RBRWidth)
 		if allParametres[i] == true then
-			ElvUI_ReminderBuffs[i].currentID = lastid
-			lastid = lastid + 1
-			ElvUI_ReminderBuffs[i]:Show()
-		elseif allParametres[i] == false then
-			ElvUI_ReminderBuffs[i]:Hide()
-		end
-
-		-- if i == 1 then
-		-- 	local id = ElvUI_ReminderBuffs[i].currentID
-		-- 	if id then
-		-- 		ElvUI_ReminderBuffs[i]:SetPoint("TOP", ElvUI_ReminderBuffs, "TOP", 0, E.RBRWidth*-id)
-		-- 	end
-		-- -- elseif i == #allParametres then
-		-- -- 	ElvUI_ReminderBuffs[i]:SetPoint("BOTTOM", ElvUI_ReminderBuffs, "BOTTOM", 0, 0)
-		-- else
-			local id = ElvUI_ReminderBuffs[i].currentID
-			if id then
-				if id == 1 then
-					ElvUI_ReminderBuffs[i]:Point("TOP", ElvUI_ReminderBuffs, "TOP", 0, (E.RBRWidth*-(id-1)))
-				-- print((E.Border))
-				-- print((E.Spacing*3))
-				else
-					ElvUI_ReminderBuffs[i]:Point("TOP", ElvUI_ReminderBuffs, "TOP", 0, (E.RBRWidth*-(id-1))+(E.Border - E.Spacing*3)*4)
-				end
+			frame[i]:Show()
+			if lastid == 1 then
+				frame[i]:SetPoint("TOP", frame, "TOP", 0, 0)
+			elseif lastid == 7 then
+				frame[i]:SetPoint("BOTTOM", frame, "BOTTOM", 0, 0)
+			else
+				frame[i]:Point("TOP", lastframe, "BOTTOM", 0, E.Border - E.Spacing * 3)
 			end
-		-- end
+			lastid = lastid + 1
+			lastframe = frame[i]
+		else
+			frame[i]:Hide()
+		end
 	end
 end
 

@@ -40,6 +40,7 @@ function UF:Construct_PlayerFrame(frame)
 			frame.ClassBar = "AdditionalPower"
 		end
 	end
+	frame.PowerPrediction = self:Construct_PowerPrediction(frame) -- must be AFTER Power & AdditionalPower
 	frame.GroupRoleIndicator = self:Construct_RoleIcon(frame)
 	frame.MouseGlow = self:Construct_MouseGlow(frame)
 	frame.TargetGlow = self:Construct_TargetGlow(frame)
@@ -138,6 +139,7 @@ function UF:Update_PlayerFrame(frame, db)
 	--Power
 	UF:Configure_Power(frame)
 
+	UF:Configure_PowerPrediction(frame)
 	--Portrait
 	UF:Configure_Portrait(frame)
 

@@ -1384,6 +1384,11 @@ P.unitframe = {
 			others = {r = 0, g = 1, b = 0, a = 0.25},
 			maxOverflow = 0
 		},
+		powerPrediction = {
+			enable = false,
+			additional = { r = 1, g = 1, b = 1, a = 1 },
+			color = { r = 1, g = 1, b = 1, a = 1 },
+		},
 		classResources = {
 			comboPoints = {
 				[1] = {r = 0.69, g = 0.31, b = 0.31},
@@ -1489,6 +1494,7 @@ P.unitframe = {
 					useCustomLevel = false,
 					frameLevel = 1
 				},
+				powerPrediction = false,
 				parent = "FRAME"
 			},
 			infoPanel = {

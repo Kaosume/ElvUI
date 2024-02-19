@@ -14,6 +14,17 @@ function UF:Construct_PowerBar(frame, bg, text, textPos)
 	local power = CreateFrame("StatusBar", nil, frame)
 	UF.statusbars[power] = true
 
+	hooksecurefunc(power, 'SetStatusBarColor', function(_, r, g, b)
+		if frame and frame.PowerPrediction and frame.PowerPrediction.mainBar then
+			if UF and UF.db and UF.db.colors and UF.db.colors.powerPrediction and UF.db.colors.powerPrediction.enable then
+				local color = UF.db.colors.powerPrediction.color
+				frame.PowerPrediction.mainBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
+			else
+				frame.PowerPrediction.mainBar:SetStatusBarColor(r * 1.25, g * 1.25, b * 1.25)
+			end
+		end
+	end)
+
 	power.RaisedElementParent = CreateFrame("Frame", nil, power)
 	power.RaisedElementParent:SetFrameLevel(power:GetFrameLevel() + 100)
 	power.RaisedElementParent:SetAllPoints()
@@ -30,14 +41,7 @@ function UF:Construct_PowerBar(frame, bg, text, textPos)
 	if text then
 		power.value = frame.RaisedElementParent:CreateFontString(nil, "OVERLAY")
 		UF:Configure_FontString(power.value)
-
-		local x = -2
-		if textPos == "LEFT" then
-			x = 2
-		end
-
-		power.value:Point(textPos, frame.Health, textPos, x, 0)
-
+		power.value:Point(textPos, frame.Health, textPos, textPos == "LEFT" and 2 or -2, 0)
 		power.value.frequentUpdates = true
 	end
 
@@ -63,8 +67,10 @@ function UF:Configure_Power(frame)
 	if frame.USE_POWERBAR then
 		if not frame:IsElementEnabled("Power") then
 			frame:EnableElement("Power")
-			power:Show()
 		end
+
+		--Show the power here so that attached texts can be displayed correctly.
+		power:Show() --Since it is updated in the PostUpdatePower, so it's fine!
 
 		E:SetSmoothing(power, self.db.smoothbars)
 
@@ -79,6 +85,12 @@ function UF:Configure_Power(frame)
 		else
 			power.value:SetParent(frame.RaisedElementParent)
 		end
+
+		-- if db.power.reverseFill then
+		-- 	power:SetReverseFill(true)
+		-- else
+		-- 	power:SetReverseFill(false)
+		-- end
 
 		--Colors
 		power.colorClass = nil
@@ -111,14 +123,19 @@ function UF:Configure_Power(frame)
 
 		--Position
 		power:ClearAllPoints()
+		local OFFSET = (frame.BORDER + frame.SPACING)*2
+
 		if frame.POWERBAR_DETACHED then
-			power:Width(frame.POWERBAR_WIDTH - ((frame.BORDER + frame.SPACING)*2))
-			power:Height(frame.POWERBAR_HEIGHT - ((frame.BORDER + frame.SPACING)*2))
-			if not power.Holder or (power.Holder and not power.Holder.mover) then
+			power:Size(frame.POWERBAR_WIDTH - OFFSET, frame.POWERBAR_HEIGHT - OFFSET)
+			if power.Holder and power.Holder.mover then
+				power.Holder:Size(frame.POWERBAR_WIDTH, frame.POWERBAR_HEIGHT)
+				power:Point("BOTTOMLEFT", power.Holder, "BOTTOMLEFT", frame.BORDER+frame.SPACING, frame.BORDER+frame.SPACING)
+				power.Holder.mover:SetScale(1)
+				power.Holder.mover:SetAlpha(1)
+			else
 				power.Holder = CreateFrame("Frame", nil, power)
 				power.Holder:Size(frame.POWERBAR_WIDTH, frame.POWERBAR_HEIGHT)
 				power.Holder:Point("BOTTOM", frame, "BOTTOM", 0, -20)
-				power:ClearAllPoints()
 				power:Point("BOTTOMLEFT", power.Holder, "BOTTOMLEFT", frame.BORDER+frame.SPACING, frame.BORDER+frame.SPACING)
 				--Currently only Player and Target can detach power bars, so doing it this way is okay for now
 				if frame.unitframeType and frame.unitframeType == "player" then
@@ -126,14 +143,7 @@ function UF:Configure_Power(frame)
 				elseif frame.unitframeType and frame.unitframeType == "target" then
 					E:CreateMover(power.Holder, "TargetPowerBarMover", L["Target Powerbar"], nil, nil, nil, "ALL,SOLO", nil, "unitframe,target,power")
 				end
-			else
-				power.Holder:Size(frame.POWERBAR_WIDTH, frame.POWERBAR_HEIGHT)
-				power:ClearAllPoints()
-				power:Point("BOTTOMLEFT", power.Holder, "BOTTOMLEFT", frame.BORDER+frame.SPACING, frame.BORDER+frame.SPACING)
-				power.Holder.mover:SetScale(1)
-				power.Holder.mover:SetAlpha(1)
 			end
-
 			power:SetFrameLevel(50) --RaisedElementParent uses 100, we want lower value to allow certain icons and texts to appear above power
 		elseif frame.USE_POWERBAR_OFFSET then
 			if frame.ORIENTATION == "LEFT" then
@@ -148,39 +158,37 @@ function UF:Configure_Power(frame)
 			end
 			power:SetFrameLevel(frame.Health:GetFrameLevel() - 5) --Health uses 10
 		elseif frame.USE_INSET_POWERBAR then
-			power:Height(frame.POWERBAR_HEIGHT - (frame.BORDER + frame.SPACING) * 2)
+			power:Height(frame.POWERBAR_HEIGHT - OFFSET)
 			power:Point("BOTTOMLEFT", frame.Health, "BOTTOMLEFT", frame.BORDER + frame.BORDER * 2, frame.BORDER + frame.BORDER * 2)
 			power:Point("BOTTOMRIGHT", frame.Health, "BOTTOMRIGHT", -(frame.BORDER + frame.BORDER * 2), frame.BORDER + frame.BORDER * 2)
 			power:SetFrameLevel(50)
 		elseif frame.USE_MINI_POWERBAR then
-			power:Height(frame.POWERBAR_HEIGHT - (frame.BORDER + frame.SPACING) * 2)
+			power:Height(frame.POWERBAR_HEIGHT - OFFSET)
 
 			if frame.ORIENTATION == "LEFT" then
 				power:Width(frame.POWERBAR_WIDTH - frame.BORDER * 2)
-				power:Point("RIGHT", frame, "BOTTOMRIGHT", -(frame.BORDER * 2 + 4) - (frame.HAPPINESS_WIDTH or 0), (frame.POWERBAR_HEIGHT - frame.BORDER) / 2)
+				power:Point("RIGHT", frame, "BOTTOMRIGHT", -(frame.BORDER * 2 + 4) - (frame.HAPPINESS_WIDTH or 0), (frame.POWERBAR_HEIGHT - frame.BORDER) * 0.5)
 			elseif frame.ORIENTATION == "RIGHT" then
 				power:Width(frame.POWERBAR_WIDTH - frame.BORDER*2)
-				power:Point("LEFT", frame, "BOTTOMLEFT", frame.BORDER * 2 + 4 + (frame.HAPPINESS_WIDTH or 0), (frame.POWERBAR_HEIGHT - frame.BORDER) / 2)
+				power:Point("LEFT", frame, "BOTTOMLEFT", frame.BORDER * 2 + 4 + (frame.HAPPINESS_WIDTH or 0), ((frame.POWERBAR_HEIGHT - frame.BORDER) * 0.5))
 			else
-				power:Point("LEFT", frame, "BOTTOMLEFT", frame.BORDER * 2 + 4, ((frame.POWERBAR_HEIGHT-frame.BORDER)/2))
-				power:Point("RIGHT", frame, "BOTTOMRIGHT", -(frame.BORDER * 2 + 4) - (frame.HAPPINESS_WIDTH or 0), (frame.POWERBAR_HEIGHT - frame.BORDER) / 2)
+				power:Point("LEFT", frame, "BOTTOMLEFT", frame.BORDER * 2 + 4, ((frame.POWERBAR_HEIGHT-frame.BORDER)*0.5))
+				power:Point("RIGHT", frame, "BOTTOMRIGHT", -(frame.BORDER * 2 + 4) - (frame.HAPPINESS_WIDTH or 0), (frame.POWERBAR_HEIGHT - frame.BORDER) * 0.5)
 			end
 
 			power:SetFrameLevel(50)
 		else
 			power:Point("TOPRIGHT", frame.Health.backdrop, "BOTTOMRIGHT", -frame.BORDER, -frame.SPACING * 3)
 			power:Point("TOPLEFT", frame.Health.backdrop, "BOTTOMLEFT", frame.BORDER, -frame.SPACING * 3)
-			power:Height(frame.POWERBAR_HEIGHT - (frame.BORDER + frame.SPACING) * 2)
+			power:Height(frame.POWERBAR_HEIGHT - OFFSET)
 
 			power:SetFrameLevel(frame.Health:GetFrameLevel() - 5)
 		end
 
 		--Hide mover until we detach again
-		if not frame.POWERBAR_DETACHED then
-			if power.Holder and power.Holder.mover then
-				power.Holder.mover:SetScale(0.0001)
-				power.Holder.mover:SetAlpha(0)
-			end
+		if not frame.POWERBAR_DETACHED and power.Holder and power.Holder.mover then
+			power.Holder.mover:SetScale(0.0001)
+			power.Holder.mover:SetAlpha(0)
 		end
 
 		if db.power.strataAndLevel and db.power.strataAndLevel.useCustomStrata then
@@ -190,8 +198,8 @@ function UF:Configure_Power(frame)
 		end
 		if db.power.strataAndLevel and db.power.strataAndLevel.useCustomLevel then
 			power:SetFrameLevel(db.power.strataAndLevel.frameLevel)
-			power.backdrop:SetFrameLevel(power:GetFrameLevel() - 1)
 		end
+		power.backdrop:SetFrameLevel(power:GetFrameLevel() - 1)
 
 		if frame.POWERBAR_DETACHED and db.power.parent == "UIPARENT" then
 			power:SetParent(E.UIParent)

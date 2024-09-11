@@ -52,7 +52,8 @@ local FOREIGN_SERVER_LABEL = FOREIGN_SERVER_LABEL
 local PVP = PVP
 local FACTION_ALLIANCE = FACTION_ALLIANCE
 local FACTION_HORDE = FACTION_HORDE
-local LEVEL = LEVEL
+local LEVEL1 = strlower(_G.TOOLTIP_UNIT_LEVEL:gsub('%s?%%s%s?%-?',''))
+local LEVEL2 = strlower((_G.TOOLTIP_UNIT_LEVEL_RACE or _G.TOOLTIP_UNIT_LEVEL_CLASS):gsub('^%%2$s%s?(.-)%s?%%1$s','%1'):gsub('^%-?г?о?%s?',''):gsub('%s?%%s%s?%-?',''))
 local FACTION_BAR_COLORS = FACTION_BAR_COLORS
 local ID = ID
 
@@ -232,8 +233,9 @@ end
 function TT:GetLevelLine(tt, offset)
 	for i = offset, tt:NumLines() do
 		local tipText = _G["GameTooltipTextLeft"..i]
-		if tipText:GetText() and find(tipText:GetText(), "уровня") then
-			return tipText
+		local lower = strlower(tipText:GetText())
+		if lower and (strfind(lower, LEVEL1) or strfind(lower, LEVEL2)) then
+			return tipText, i
 		end
 	end
 end
@@ -301,8 +303,7 @@ function TT:SetUnitText(tt, unit, level, isShiftKeyDown)
 		if levelLine then
 			local diffColor = GetQuestDifficultyColor(level)
 			local race = UnitRace(unit)
-			local cons = ElvUF.Tags.Methods["cons"](unit)
-			levelLine:SetFormattedText("|cff%02x%02x%02x%s|r %s/%s %s%s|r", diffColor.r * 255, diffColor.g * 255, diffColor.b * 255, level > 0 and level or "??", race or "", cons or "", E:RGBToHex(color.r, color.g, color.b), localeClass)
+			levelLine:SetFormattedText("|cff%02x%02x%02x%s|r %s %s%s|r", diffColor.r * 255, diffColor.g * 255, diffColor.b * 255, level > 0 and level or "??", race or "", E:RGBToHex(color.r, color.g, color.b), localeClass)
 		end
 		if self.db.showElvUIUsers then
 			local addonUser = E.UserList[ShortName]
@@ -440,6 +441,21 @@ function TT:GameTooltip_OnTooltipSetUnit(tt)
 
 	self:RemoveTrashLines(tt)
 
+	local isPlayerUnit = UnitIsPlayer(unit)
+	if isPlayerUnit then
+		local _, i = self:GetLevelLine(tt, 2)
+		local swpline = _G["GameTooltipTextLeft"..i+1]
+		if swpline then
+			local swptxt = swpline:GetText()
+			swpline:SetText(select(2, C_Unit.GetZodiacByDebuff(unit)))
+			if swptxt then
+				tt:AddLine("|cffFFFFFF" .. swptxt)
+			end
+		else
+			tt:AddLine("|cffFFFFFF" .. select(2, C_Unit.GetZodiacByDebuff(unit)))
+		end
+	end
+
 	if not isShiftKeyDown and not isControlKeyDown and self.db.targetInfo then
 		local unitTarget = unit.."target"
 		if unit ~= "player" and UnitExists(unitTarget) then
@@ -486,7 +502,6 @@ function TT:GameTooltip_OnTooltipSetUnit(tt)
 		end
 	end
 
-	local isPlayerUnit = UnitIsPlayer(unit)
 	local color = self:SetUnitText(tt, unit, UnitLevel(unit), isShiftKeyDown)
 
 	if isPlayerUnit then

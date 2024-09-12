@@ -52,7 +52,8 @@ local FOREIGN_SERVER_LABEL = FOREIGN_SERVER_LABEL
 local PVP = PVP
 local FACTION_ALLIANCE = FACTION_ALLIANCE
 local FACTION_HORDE = FACTION_HORDE
-local LEVEL = LEVEL
+local LEVEL1 = strlower(_G.TOOLTIP_UNIT_LEVEL:gsub('%s?%%s%s?%-?',''))
+local LEVEL2 = strlower((_G.TOOLTIP_UNIT_LEVEL_RACE or _G.TOOLTIP_UNIT_LEVEL_CLASS):gsub('^%%2$s%s?(.-)%s?%%1$s','%1'):gsub('^%-?г?о?%s?',''):gsub('%s?%%s%s?%-?',''))
 local FACTION_BAR_COLORS = FACTION_BAR_COLORS
 local ID = ID
 
@@ -232,8 +233,9 @@ end
 function TT:GetLevelLine(tt, offset)
 	for i = offset, tt:NumLines() do
 		local tipText = _G["GameTooltipTextLeft"..i]
-		if tipText:GetText() and find(tipText:GetText(), LEVEL) then
-			return tipText
+		local lower = strlower(tipText:GetText())
+		if lower and (strfind(lower, LEVEL1) or strfind(lower, LEVEL2)) then
+			return tipText, i
 		end
 	end
 end
@@ -439,6 +441,21 @@ function TT:GameTooltip_OnTooltipSetUnit(tt)
 
 	self:RemoveTrashLines(tt)
 
+	local isPlayerUnit = UnitIsPlayer(unit)
+	if isPlayerUnit then
+		local _, i = self:GetLevelLine(tt, 2)
+		local swpline = _G["GameTooltipTextLeft"..i+1]
+		if swpline then
+			local swptxt = swpline:GetText()
+			swpline:SetText(select(2, C_Unit.GetZodiacByDebuff(unit)))
+			if swptxt then
+				tt:AddLine("|cffFFFFFF" .. swptxt)
+			end
+		else
+			tt:AddLine("|cffFFFFFF" .. select(2, C_Unit.GetZodiacByDebuff(unit)))
+		end
+	end
+
 	if not isShiftKeyDown and not isControlKeyDown and self.db.targetInfo then
 		local unitTarget = unit.."target"
 		if unit ~= "player" and UnitExists(unitTarget) then
@@ -485,7 +502,6 @@ function TT:GameTooltip_OnTooltipSetUnit(tt)
 		end
 	end
 
-	local isPlayerUnit = UnitIsPlayer(unit)
 	local color = self:SetUnitText(tt, unit, UnitLevel(unit), isShiftKeyDown)
 
 	if isPlayerUnit then
@@ -495,7 +511,7 @@ function TT:GameTooltip_OnTooltipSetUnit(tt)
 			if not UnitIsEnemy("player", unit) then
 				ItemLevelMixIn:Request(unit)
 
-				tt:AddDoubleLine(L["Item Level:"], self:GetItemLvL(unit), nil, nil, nil, 1, 1, 1)
+				tt:AddDoubleLine(L["Item Level:2"], self:GetItemLvL(unit), nil, nil, nil, 1, 1, 1)
 			end
 		end
 	end

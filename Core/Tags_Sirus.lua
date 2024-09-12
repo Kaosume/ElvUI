@@ -377,6 +377,24 @@ ElvUF.Tags.Methods["race:abbrev"] = function(unit)
 	end
 end
 
+ElvUF.Tags.Events["cons"] = "UNIT_AURA"
+ElvUF.Tags.Methods["cons"] = function(unit)
+	return select(2, C_Unit.GetZodiacByDebuff(unit))
+end
+
+ElvUF.Tags.Events["cons:race"] = "UNIT_AURA"
+ElvUF.Tags.Methods["cons:race"] = function(unit)
+	local zodiacID = C_Unit.GetZodiacByDebuff(unit)
+	return zodiacID and _G[E_CHARACTER_RACES[zodiacID]]
+end
+
+ElvUF.Tags.Events["cons:race:abbrev"] = "UNIT_AURA"
+ElvUF.Tags.Methods["cons:race:abbrev"] = function(unit)
+	local zodiacID = C_Unit.GetZodiacByDebuff(unit)
+	return zodiacID and race_type[S_CHARACTER_RACES_INFO[zodiacID].clientFileString]
+end
+
+
 -----------------------------------
 -----------------------------------
 ---------------------tags for np
@@ -435,6 +453,9 @@ E:AddTagInfo("pvp:id", "Sirus", "Показывает на юните PvP ран
 E:AddTagInfo("pvp:icon", "Sirus", "Показывает на юните PvP ранк в виде иконки")
 
 E:AddTagInfo("race:abbrev", "Sirus", "Показывает расу юнита сокращенно")
+E:AddTagInfo("cons", "Sirus", "Показывает созвездие юнита")
+E:AddTagInfo("cons:race", "Sirus", "Показывает расу созвездия юнита")
+E:AddTagInfo("cons:race:abbrev", "Sirus", "Показывает расу созвездия юнита сокращенно")
 
 E:AddTagInfo("happiness", "Sirus", "Счастье питомца строка")
 E:AddTagInfo("happiness:icon", "Sirus", "Счастье питомца в иконке")
